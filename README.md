@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Proctoring-AI
 
 Project to create an automated proctoring system where the user can be monitored automatically through the webcam and microphone. The project is divided into two parts: vision and audio based functionalities. An explanation of some functionalities of the project can be found on my [medium article](https://towardsdatascience.com/automating-online-proctoring-using-ai-e429086743c8?source=friends_link&sk=fbc385d1a8c55628a916dc714747f276).
@@ -128,6 +128,3 @@ This project is licensed under the MIT License - see the [LICENSE.md](../../tree
 ## Like what I am doing
 <a href="https://www.buymeacoffee.com/vardan" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
-=======
-# Proctoring-AI
->>>>>>> 9cf2eae19315649c3b543c048d7d28f9e4fb468d
