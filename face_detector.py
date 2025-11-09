@@ -7,6 +7,10 @@ Created on Wed Jul 29 17:52:00 2020
 
 import cv2
 import numpy as np
+import os
+
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_face_detector(modelFile=None,
                       configFile=None,
@@ -30,16 +34,16 @@ def get_face_detector(modelFile=None,
     """
     if quantized:
         if modelFile == None:
-            modelFile = "models/opencv_face_detector_uint8.pb"
+            modelFile = os.path.join(SCRIPT_DIR, "models/opencv_face_detector_uint8.pb")
         if configFile == None:
-            configFile = "models/opencv_face_detector.pbtxt"
+            configFile = os.path.join(SCRIPT_DIR, "models/opencv_face_detector.pbtxt")
         model = cv2.dnn.readNetFromTensorflow(modelFile, configFile)
         
     else:
         if modelFile == None:
-            modelFile = "models/res10_300x300_ssd_iter_140000.caffemodel"
+            modelFile = os.path.join(SCRIPT_DIR, "models/res10_300x300_ssd_iter_140000.caffemodel")
         if configFile == None:
-            configFile = "models/deploy.prototxt"
+            configFile = os.path.join(SCRIPT_DIR, "models/deploy.prototxt")
         model = cv2.dnn.readNetFromCaffe(configFile, modelFile)
     return model
 

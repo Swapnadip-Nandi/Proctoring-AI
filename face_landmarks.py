@@ -9,9 +9,12 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import os
 
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def get_landmark_model(saved_model='models/pose_model'):
+def get_landmark_model(saved_model=None):
     """
     Get the facial landmark model. 
     Original repository: https://github.com/yinguobing/cnn-facial-landmark
@@ -27,6 +30,8 @@ def get_landmark_model(saved_model='models/pose_model'):
         Facial landmarks model
 
     """
+    if saved_model is None:
+        saved_model = os.path.join(SCRIPT_DIR, 'models/pose_model')
     #model = keras.models.load_model(saved_model)
     model = tf.saved_model.load(saved_model)
     return model

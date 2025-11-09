@@ -139,8 +139,27 @@ model_points = np.array([
                         ])
 
 def detect_head_pose(video_path):
+    # Use webcam if no video path provided
+    if video_path is None or video_path == "":
+        video_path = 0
+        
     cap = cv2.VideoCapture(video_path)
+    
+    # Check if camera opened successfully
+    if not cap.isOpened():
+        print("Error: Could not open camera")
+        return
+    
+    # Add delay and configure camera
+    import time
+    time.sleep(0.5)  # Give camera time to initialize
+    
     ret, img = cap.read()
+    if not ret or img is None:
+        print("Error: Could not read from camera")
+        cap.release()
+        return
+        
     size = img.shape
 
     # Camera internals
@@ -151,11 +170,23 @@ def detect_head_pose(video_path):
                             [0, focal_length, center[1]],
                             [0, 0, 1]], dtype = "double"
                             )
+    
+    print("Head pose detection started. Press 'q' to quit.")
+    print("Keep your face visible to the camera.")
+    
     while True:
         ret, img = cap.read()
-        if ret == True:
-            faces = find_faces(img, face_model)
-            for face in faces:
+        if not ret or img is None:
+            print("Error: Lost camera connection")
+            break
+            
+        faces = find_faces(img, face_model)
+        
+        if len(faces) == 0:
+            cv2.putText(img, 'No face detected', (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 
+                       1, (0, 0, 255), 2, cv2.LINE_AA)
+        
+        for face in faces:
                 marks = detect_marks(img, landmark_model, face)
                 # mark_detector.draw_marks(img, marks, color=(0, 255, 0))
                 image_points = np.array([
@@ -217,10 +248,10 @@ def detect_head_pose(video_path):
                 
                 cv2.putText(img, str(ang1), tuple(p1), font, 2, (128, 255, 255), 3)
                 cv2.putText(img, str(ang2), tuple(x1), font, 2, (255, 255, 128), 3)
-            cv2.imshow('img', img)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        else:
+        
+        cv2.imshow('img', img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-    cv2.destroyAllWindows()
+    
     cap.release()
+    cv2.destroyAllWindows()

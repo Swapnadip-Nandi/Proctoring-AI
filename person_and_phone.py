@@ -8,6 +8,10 @@ Created on Fri May  1 22:45:22 2020
 import tensorflow as tf
 import numpy as np
 import cv2
+import os
+
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 from tensorflow.keras import Model
 from tensorflow.keras.layers import (
@@ -75,7 +79,7 @@ def load_darknet_weights(model, weights_file):
             # darknet shape (out_dim, in_dim, height, width)
             conv_shape = (filters, in_dim, size, size)
             conv_weights = np.fromfile(
-                wf, dtype=np.float32, count=np.product(conv_shape))
+                wf, dtype=np.float32, count=np.prod(conv_shape))
             # tf shape (height, width, in_dim, out_dim)
             conv_weights = conv_weights.reshape(
                 conv_shape).transpose([2, 3, 1, 0])
@@ -317,27 +321,52 @@ def YoloV3(size=None, channels=3, anchors=yolo_anchors,
 
     return Model(inputs, outputs, name='yolov3')
 
-def weights_download(out='models/yolov3.weights'):
-    _ = wget.download('https://pjreddie.com/media/files/yolov3.weights', out='models/yolov3.weights')
+def weights_download(out=None):
+    if out is None:
+        out = os.path.join(SCRIPT_DIR, 'models/yolov3.weights')
+    _ = wget.download('https://pjreddie.com/media/files/yolov3.weights', out=out)
     
-# weights_download() # to download weights
+# Download weights if not present
+weights_path = os.path.join(SCRIPT_DIR, 'models/yolov3.weights')
+if not os.path.exists(weights_path):
+    print("Downloading YOLOv3 weights... This may take a few minutes.")
+    weights_download(weights_path)
+    print("YOLOv3 weights downloaded successfully!")
+
 yolo = YoloV3()
-load_darknet_weights(yolo, 'models/yolov3.weights') 
+load_darknet_weights(yolo, weights_path) 
 
 
 def detect_phone_and_person(video_path):
+    # Use webcam if no video path provided
+    if video_path is None or video_path == "":
+        video_path = 0
+        
     cap = cv2.VideoCapture(video_path)
+    
+    # Check if camera opened successfully
+    if not cap.isOpened():
+        print("Error: Could not open camera")
+        return
+    
+    # Add delay and configure camera
+    import time
+    time.sleep(0.5)  # Give camera time to initialize
+    
+    print("Person and phone detection started. Press 'q' to quit.")
+    print("Point camera at people or phones to detect.")
 
     while(True):
         ret, image = cap.read()
-        if ret == False:
+        if not ret or image is None:
+            print("Error: Lost camera connection")
             break
         img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (320, 320))
         img = img.astype(np.float32)
         img = np.expand_dims(img, 0)
         img = img / 255
-        class_names = [c.strip() for c in open("models/classes.TXT").readlines()]
+        class_names = [c.strip() for c in open(os.path.join(SCRIPT_DIR, "models/classes.TXT")).readlines()]
         boxes, scores, classes, nums = yolo(img)
         count=0
         for i in range(nums[0]):

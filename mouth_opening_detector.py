@@ -18,6 +18,10 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 
 
 def mouth_opening_detector(video_path):
+    # Use webcam if no video path provided
+    if video_path is None or video_path == "":
+        video_path = 0
+        
     cap = cv2.VideoCapture(video_path)
 
     while(True):

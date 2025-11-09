@@ -1,7 +1,11 @@
 import numpy as np
 import cv2
-from sklearn.externals import joblib
+import joblib
+import os
 from face_detector import get_face_detector, find_faces
+
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def calc_hist(img):
     """
@@ -26,7 +30,7 @@ def calc_hist(img):
     return np.array(histogram)
 
 face_model = get_face_detector()
-clf = joblib.load('models/face_spoofing.pkl')
+clf = joblib.load(os.path.join(SCRIPT_DIR, 'models/face_spoofing.pkl'))
 cap = cv2.VideoCapture(0)
 
 sample_number = 1

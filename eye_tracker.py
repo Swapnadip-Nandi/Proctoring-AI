@@ -164,18 +164,41 @@ cv2.createTrackbar("threshold", "image", 75, 255, nothing)
 
 def track_eye(video_path=None):
 
-    video_path = ""
+    # Use webcam if no video path provided
+    if video_path is None or video_path == "":
+        video_path = 0
 
     cap = cv2.VideoCapture(video_path)
+    
+    # Check if camera opened successfully
+    if not cap.isOpened():
+        print("Error: Could not open camera")
+        return
+    
     ret, img = cap.read()
+    if not ret:
+        print("Error: Could not read from camera")
+        cap.release()
+        return
+    
     thresh = img.copy()
+
+    print("Eye tracking started. Press 'q' to quit.")
+    print("Make sure your face is visible to the camera.")
 
     while(True):
         ret, img = cap.read()
-        rects = find_faces(img, face_model)
-
+        
         if not ret:
+            print("Error: Lost camera connection")
             break
+        
+        rects = find_faces(img, face_model)
+        
+        if len(rects) == 0:
+            # No face detected, show frame with message
+            cv2.putText(img, 'No face detected', (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 
+                       1, (0, 0, 255), 2, cv2.LINE_AA)
         
         for rect in rects:
             shape = detect_marks(img, landmark_model, rect)
