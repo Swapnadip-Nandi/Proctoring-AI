@@ -4,9 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proctoring AI - Professional Dashboard</title>
+    
+    <!-- Prevent screenshot metadata (limited effectiveness) -->
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        /* Screenshot prevention overlay */
+        .screenshot-warning-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(220, 53, 69, 0.98);
+            color: white;
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            font-size: 2em;
+            text-align: center;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+        }
+        
+        .screenshot-warning-overlay.active {
+            display: flex !important;
+            animation: flashRed 0.5s infinite;
+        }
+        
+        @keyframes flashRed {
+            0%, 100% { background: rgba(220, 53, 69, 0.98); }
+            50% { background: rgba(255, 0, 0, 0.98); }
+        }
+        
+        /* Watermark overlay to discourage screenshots */
+        .watermark-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9998;
+            opacity: 0.15;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 80px,
+                    rgba(220, 53, 69, 0.4) 80px,
+                    rgba(220, 53, 69, 0.4) 100px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 80px,
+                    rgba(220, 53, 69, 0.4) 80px,
+                    rgba(220, 53, 69, 0.4) 100px
+                );
+            font-size: 32px;
+            line-height: 100px;
+            text-align: center;
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        /* Prevent user selection globally */
+        * {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Navigation Bar -->
@@ -16,6 +93,9 @@
                 <i class="fas fa-shield-alt"></i> Proctoring AI Dashboard
             </span>
             <div class="d-flex align-items-center">
+                <a href="/monitoring_logs" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fas fa-list-alt"></i> Monitoring Logs
+                </a>
                 <span class="badge bg-light text-dark me-3" id="sessionTime">Session: --:--:--</span>
                 <span class="badge bg-info me-3" id="fps">FPS: --</span>
                 <button class="btn btn-outline-light btn-sm" onclick="toggleFullscreen()">
@@ -24,6 +104,28 @@
             </div>
         </div>
     </nav>
+
+    <!-- Screenshot Warning Overlay -->
+    <div class="screenshot-warning-overlay" id="screenshotWarning">
+        <i class="fas fa-camera-slash fa-5x mb-4"></i>
+        <h1>⚠️ SCREENSHOT ATTEMPT DETECTED</h1>
+        <p>Taking screenshots is prohibited during the exam!</p>
+        <p>This violation has been logged and reported.</p>
+        <button class="btn btn-light btn-lg mt-4" onclick="hideScreenshotWarning()">
+            I Understand
+        </button>
+    </div>
+
+    <!-- Watermark Overlay -->
+    <div class="watermark-overlay" id="watermark">
+        <div style="transform: rotate(-45deg); width: 200%; margin-left: -50%; margin-top: 20%;">
+            ⚠️ PROCTORED EXAM - SCREENSHOTS PROHIBITED ⚠️<br>
+            ⚠️ PROCTORED EXAM - SCREENSHOTS PROHIBITED ⚠️<br>
+            ⚠️ PROCTORED EXAM - SCREENSHOTS PROHIBITED ⚠️<br>
+            ⚠️ PROCTORED EXAM - SCREENSHOTS PROHIBITED ⚠️<br>
+            ⚠️ PROCTORED EXAM - SCREENSHOTS PROHIBITED ⚠️
+        </div>
+    </div>
 
     <div class="container-fluid mt-4">
         <div class="row">
@@ -104,6 +206,20 @@
                             <span class="indicator" id="phoneIndicator">●</span>
                             <span id="phoneStatus">No Phone</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Audio Detection Card -->
+                <div class="card status-card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2">
+                            <i class="fas fa-microphone"></i> Audio Detection
+                        </h6>
+                        <div class="status-indicator">
+                            <span class="indicator" id="audioIndicator">●</span>
+                            <span id="audioStatus">No Audio</span>
+                        </div>
+                        <small class="text-muted" id="volumeLevel">Volume: 0%</small>
                     </div>
                 </div>
             </div>

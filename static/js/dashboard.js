@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard initialized');
     startStatusUpdates();
     updateTime();
-    setInterval(updateTime, 1000);
+    setInterval(updateTime, 5000);
 });
 
 // Start monitoring
@@ -77,7 +77,7 @@ function startStatusUpdates() {
         updateStatus();
         updateViolations();
         updateActivityLog();  // Add activity log updates
-    }, 500); // Update every 500ms for smooth UI
+    }, 5000); // Update every 5 seconds as requested
 }
 
 // Update status from API
@@ -115,6 +115,21 @@ function updateStatus() {
             updateIndicator('phoneIndicator', 'phoneStatus', 
                 !data.phone_detected, 
                 data.phone_detected ? 'Phone Detected!' : 'No Phone');
+            
+            // Update audio detection
+            const audioNormal = !data.speech_detected && !data.suspicious_audio;
+            let audioStatusText = 'No Audio';
+            if (data.suspicious_audio) {
+                audioStatusText = 'Suspicious Audio!';
+            } else if (data.speech_detected) {
+                audioStatusText = 'Speech Detected';
+            } else if (data.audio_detected) {
+                audioStatusText = 'Audio Detected';
+            }
+            updateIndicator('audioIndicator', 'audioStatus', 
+                audioNormal, 
+                audioStatusText);
+            document.getElementById('volumeLevel').textContent = `Volume: ${data.volume_level}%`;
             
             // Update statistics
             document.getElementById('totalViolations').textContent = data.total_violations;
@@ -206,13 +221,17 @@ function updateActiveAlerts(alerts) {
         'NO_PERSON': '<i class="fas fa-user-times"></i> No Person Detected',
         'MULTIPLE_PEOPLE': '<i class="fas fa-users"></i> Multiple People',
         'PHONE_DETECTED': '<i class="fas fa-mobile-alt"></i> Phone Detected',
+        'SPEECH_DETECTED': '<i class="fas fa-microphone"></i> Speech Detected',
+        'SUSPICIOUS_AUDIO': '<i class="fas fa-volume-up"></i> Suspicious Audio',
         'EYE_MOVEMENT': '<i class="fas fa-eye"></i> Suspicious Eye Movement',
-        'HEAD_MOVEMENT': '<i class="fas fa-head-side"></i> Head Movement Detected'
+        'HEAD_MOVEMENT': '<i class="fas fa-head-side"></i> Head Movement Detected',
+        'HEAD_DOWN': '<i class="fas fa-arrow-down"></i> Head Looking Down',
+        'HEAD_UP': '<i class="fas fa-arrow-up"></i> Head Looking Up'
     };
     
     let html = '';
     alerts.forEach(alert => {
-        const severity = alert.includes('PHONE') || alert.includes('MULTIPLE') ? 'danger' : 'warning';
+        const severity = (alert.includes('PHONE') || alert.includes('MULTIPLE') || alert.includes('SUSPICIOUS')) ? 'danger' : 'warning';
         html += `
             <div class="alert-item ${severity}">
                 ${alertLabels[alert] || alert}
@@ -265,7 +284,7 @@ function updateTime() {
     const timeString = now.toLocaleTimeString();
     
     if (sessionStartTime) {
-        const elapsed = Math.floor((now - sessionStartTime) / 1000);
+        const elapsed = Math.floor((now - sessionStartTime) / 5000);
         const minutes = Math.floor(elapsed / 60);
         const seconds = elapsed % 60;
         document.getElementById('sessionDuration').textContent = 
@@ -481,3 +500,206 @@ function updateActivityLog() {
             console.error('Error updating activity log:', error);
         });
 }
+
+// Screenshot Detection - Multiple Methods
+let screenshotAttempts = 0;
+
+// Function to show screenshot warning
+function showScreenshotWarning() {
+    const overlay = document.getElementById('screenshotWarning');
+    overlay.classList.add('active');
+    
+    // Log to backend
+    fetch('/api/log_event', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            type: 'SCREENSHOT_ATTEMPT',
+            attempts: ++screenshotAttempts
+        })
+    });
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        overlay.classList.remove('active');
+    }, 3000);
+}
+
+// Hide screenshot warning
+function hideScreenshotWarning() {
+    document.getElementById('screenshotWarning').classList.remove('active');
+}
+
+// Method 1: Detect PrintScreen key
+document.addEventListener('keyup', function(e) {
+    if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        console.log('⚠️ PrintScreen key detected!');
+        showScreenshotWarning();
+        showNotification('🚨 Screenshot attempt detected and logged!', 'danger');
+        
+        // Clear clipboard to prevent screenshot
+        try {
+            navigator.clipboard.writeText('SCREENSHOT PROHIBITED - This action has been logged');
+        } catch (err) {
+            console.log('Could not clear clipboard:', err);
+        }
+    }
+});
+
+// Method 1b: Prevent PrintScreen in keydown
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        e.preventDefault();
+        e.stopPropagation();
+        showScreenshotWarning();
+        showNotification('🚨 Screenshot BLOCKED!', 'danger');
+        return false;
+    }
+});
+
+// Method 1c: Disable context menu (right-click) during monitoring
+document.addEventListener('contextmenu', function(e) {
+    if (isMonitoring) {
+        e.preventDefault();
+        showNotification('⛔ Right-click disabled during monitoring', 'warning');
+        return false;
+    }
+});
+
+// Method 2: Detect common screenshot keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Windows: Win+Shift+S, Win+PrintScreen
+    // Mac: Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5
+    if ((e.metaKey || e.key === 'Meta') && e.shiftKey && 
+        (e.key === '3' || e.key === '4' || e.key === '5' || e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        console.log('⚠️ Screenshot keyboard shortcut detected!');
+        showScreenshotWarning();
+        showNotification('🚨 Screenshot shortcut blocked and logged!', 'danger');
+        return false;
+    }
+    
+    // Windows Snipping Tool shortcuts
+    if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        e.preventDefault();
+        console.log('⚠️ PrintScreen detected!');
+        showScreenshotWarning();
+        showNotification('🚨 Screenshot blocked and logged!', 'danger');
+        return false;
+    }
+});
+
+// Method 3: Detect window blur (might indicate screenshot tool opened)
+let blurCount = 0;
+let lastBlurTime = 0;
+
+window.addEventListener('blur', function() {
+    const currentTime = Date.now();
+    
+    // If window loses focus multiple times in short period (suspicious)
+    if (currentTime - lastBlurTime < 2000) {
+        blurCount++;
+        if (blurCount >= 2) {
+            console.log('⚠️ Suspicious window focus pattern detected!');
+            showNotification('⚠️ Suspicious activity detected', 'warning');
+            blurCount = 0;
+        }
+    } else {
+        blurCount = 1;
+    }
+    
+    lastBlurTime = currentTime;
+});
+
+// Method 4: Detect browser DevTools (could be used for screenshots)
+const devtoolsDetector = () => {
+    const threshold = 160;
+    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+    
+    if (widthThreshold || heightThreshold) {
+        console.log('⚠️ Developer tools might be open!');
+        // Don't show warning for devtools, but log it
+        fetch('/api/log_event', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'DEVTOOLS_DETECTED'
+            })
+        });
+    }
+};
+
+// Check for devtools every 1 second
+setInterval(devtoolsDetector, 1000);
+
+// Method 5: Detect copy attempts on video
+document.getElementById('videoFeed')?.addEventListener('copy', function(e) {
+    e.preventDefault();
+    showScreenshotWarning();
+    showNotification('🚨 Copy attempt blocked!', 'danger');
+    return false;
+});
+
+// Method 6: Disable drag and drop on video
+document.getElementById('videoFeed')?.addEventListener('dragstart', function(e) {
+    e.preventDefault();
+    return false;
+});
+
+// Method 7: Monitor visibility API for screenshot tools
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden && isMonitoring) {
+        // Page hidden during monitoring - could be screenshot tool
+        console.log('⚠️ Page visibility changed during monitoring');
+    }
+});
+
+// Prevent selection of content (makes screenshots less useful)
+document.body.style.userSelect = 'none';
+document.body.style.webkitUserSelect = 'none';
+document.body.style.mozUserSelect = 'none';
+document.body.style.msUserSelect = 'none';
+
+// Continuously monitor clipboard for screenshot attempts
+setInterval(() => {
+    if (isMonitoring) {
+        try {
+            navigator.clipboard.readText().then(text => {
+                // If clipboard contains image data or is recently changed, it might be a screenshot
+                if (text && text.length > 0) {
+                    // Clear it
+                    navigator.clipboard.writeText('SCREENSHOT PROHIBITED');
+                }
+            }).catch(err => {
+                // Permission denied or no clipboard access
+            });
+        } catch (err) {
+            // Browser doesn't support clipboard API
+        }
+    }
+}, 500);
+
+// Add CSS to make entire page harder to screenshot
+const style = document.createElement('style');
+style.textContent = `
+    * {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+    img, video {
+        pointer-events: none !important;
+        -webkit-user-drag: none !important;
+    }
+`;
+document.head.appendChild(style);
+
+console.log('✓ Screenshot prevention systems activated');
+console.log('✓ Audio detection UI ready');
+

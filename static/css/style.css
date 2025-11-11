@@ -454,6 +454,84 @@ body {
     font-weight: 600;
 }
 
+/* Audio Detection Styling */
+#audioIndicator.active {
+    color: var(--info-color);
+}
+
+#audioIndicator.warning {
+    color: var(--warning-color);
+    animation: pulse-fast 1s infinite;
+}
+
+#audioIndicator.danger {
+    color: var(--danger-color);
+    animation: pulse-fast 0.5s infinite;
+}
+
+@keyframes pulse-fast {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+#volumeLevel {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85em;
+    color: #7f8c8d;
+}
+
+/* Screenshot Warning Styles */
+.screenshot-warning-overlay {
+    backdrop-filter: blur(10px);
+    animation: warningPulse 2s infinite;
+}
+
+.screenshot-warning-overlay i {
+    animation: shake 0.5s infinite;
+}
+
+@keyframes warningPulse {
+    0%, 100% { background: rgba(220, 53, 69, 0.95); }
+    50% { background: rgba(220, 53, 69, 0.85); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.screenshot-warning-overlay button {
+    font-size: 1.2em;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.screenshot-warning-overlay button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+/* Watermark Styling */
+.watermark-overlay {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Prevent Selection */
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .col-md-3, .col-md-6 {
@@ -466,6 +544,14 @@ body {
     
     .stat-box h4 {
         font-size: 1.5rem;
+    }
+    
+    .screenshot-warning-overlay {
+        font-size: 1.5em;
+    }
+    
+    .screenshot-warning-overlay h1 {
+        font-size: 1.5em;
     }
 }
 

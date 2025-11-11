@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Logs - Proctoring AI</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .logs-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .page-header h1 {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .page-header p {
+            color: #7f8c8d;
+            margin: 0;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .violation-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .violation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .violation-image {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .violation-image:hover {
+            transform: scale(1.05);
+        }
+        
+        .violation-details {
+            padding-left: 20px;
+        }
+        
+        .violation-type {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .violation-timestamp {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+        
+        .violation-timestamp i {
+            margin-right: 5px;
+        }
+        
+        .severity-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+        
+        .severity-CRITICAL {
+            background: #ff4757;
+            color: white;
+        }
+        
+        .severity-WARNING {
+            background: #ffa502;
+            color: white;
+        }
+        
+        .severity-INFO {
+            background: #3498db;
+            color: white;
+        }
+        
+        .violation-description {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .filter-bar {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .filter-btn {
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .back-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            color: white;
+        }
+        
+        .no-violations {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .no-violations i {
+            font-size: 5rem;
+            color: #95a5a6;
+            margin-bottom: 20px;
+        }
+        
+        .no-violations h3 {
+            color: #7f8c8d;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .spinner-border {
+            width: 4rem;
+            height: 4rem;
+            color: #667eea;
+        }
+        
+        /* Image modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+        
+        .image-modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="logs-container">
+        <!-- Header -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-list-alt"></i> Monitoring Logs</h1>
+                    <p>View all critical violations detected during proctoring sessions</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn back-btn me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <button class="btn download-btn" onclick="downloadReport()">
+                        <i class="fas fa-download"></i> Download PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics -->
+        <div class="stats-card">
+            <div class="row">
+                <div class="col-md-3 stat-item">
+                    <div class="stat-number" id="totalViolations">0</div>
+                    <div class="stat-label">Total Violations</div>
+                </div>
+                <div class="col-md-3 stat-item">
+                    <div class="stat-number" id="criticalCount">0</div>
+                    <div class="stat-label">Critical</div>
+                </div>
+                <div class="col-md-3 stat-item">
+                    <div class="stat-number" id="warningCount">0</div>
+                    <div class="stat-label">Warnings</div>
+                </div>
+                <div class="col-md-3 stat-item">
+                    <div class="stat-number" id="last24h">0</div>
+                    <div class="stat-label">Last 24 Hours</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <button class="btn btn-primary filter-btn active" onclick="filterViolations('all')">
+                <i class="fas fa-list"></i> All Violations
+            </button>
+            <button class="btn btn-danger filter-btn" onclick="filterViolations('CRITICAL')">
+                <i class="fas fa-exclamation-circle"></i> Critical Only
+            </button>
+            <button class="btn btn-warning filter-btn" onclick="filterViolations('WARNING')">
+                <i class="fas fa-exclamation-triangle"></i> Warnings Only
+            </button>
+        </div>
+        
+        <!-- Violations List -->
+        <div id="violationsList">
+            <div class="loading">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Loading violations...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Modal -->
+    <div id="imageModal" class="image-modal" onclick="closeModal()">
+        <span class="image-modal-close" onclick="closeModal()">&times;</span>
+        <img class="image-modal-content" id="modalImage">
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let allViolations = [];
+        let currentFilter = 'all';
+        
+        // Load violations on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadViolations();
+        });
+        
+        // Load violations from API
+        function loadViolations() {
+            fetch('/api/get_violations')
+                .then(response => response.json())
+                .then(data => {
+                    allViolations = data.violations;
+                    updateStatistics(data.statistics);
+                    displayViolations(allViolations);
+                })
+                .catch(error => {
+                    console.error('Error loading violations:', error);
+                    document.getElementById('violationsList').innerHTML = `
+                        <div class="no-violations">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <h3>Error loading violations</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Update statistics
+        function updateStatistics(stats) {
+            document.getElementById('totalViolations').textContent = stats.total || 0;
+            document.getElementById('criticalCount').textContent = stats.by_severity?.CRITICAL || 0;
+            document.getElementById('warningCount').textContent = stats.by_severity?.WARNING || 0;
+            document.getElementById('last24h').textContent = stats.last_24h || 0;
+        }
+        
+        // Display violations
+        function displayViolations(violations) {
+            const container = document.getElementById('violationsList');
+            
+            if (violations.length === 0) {
+                container.innerHTML = `
+                    <div class="no-violations">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>No violations found</h3>
+                        <p>All good! No violations have been detected yet.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            violations.forEach(violation => {
+                html += `
+                    <div class="violation-card">
+                        <div class="row">
+                            <div class="col-md-4">
+                                ${violation.image_path ? `
+                                    <img src="/${violation.image_path}" 
+                                         alt="Violation Screenshot" 
+                                         class="violation-image"
+                                         onclick="openModal('/${violation.image_path}')">
+                                ` : `
+                                    <div class="text-center p-5" style="background: #ecf0f1; border-radius: 10px;">
+                                        <i class="fas fa-image" style="font-size: 3rem; color: #bdc3c7;"></i>
+                                        <p class="mt-2 mb-0" style="color: #95a5a6;">No image available</p>
+                                    </div>
+                                `}
+                            </div>
+                            <div class="col-md-8 violation-details">
+                                <div class="violation-type">${formatViolationType(violation.violation_type)}</div>
+                                <div class="violation-timestamp">
+                                    <i class="fas fa-clock"></i> ${violation.timestamp}
+                                </div>
+                                <div class="severity-badge severity-${violation.severity}">
+                                    ${violation.severity}
+                                </div>
+                                <div class="violation-description">
+                                    ${violation.description || 'No description available'}
+                                </div>
+                                ${violation.metadata ? `
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i> 
+                                            Alert Level: ${violation.metadata.alert_level || 'N/A'}
+                                        </small>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Format violation type for display
+        function formatViolationType(type) {
+            return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+        
+        // Filter violations
+        function filterViolations(filter) {
+            currentFilter = filter;
+            
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.filter-btn').classList.add('active');
+            
+            // Filter and display
+            let filtered = allViolations;
+            if (filter !== 'all') {
+                filtered = allViolations.filter(v => v.severity === filter);
+            }
+            
+            displayViolations(filtered);
+        }
+        
+        // Download PDF report
+        function downloadReport() {
+            window.location.href = '/api/download_report';
+        }
+        
+        // Image modal functions
+        function openModal(imageSrc) {
+            document.getElementById('imageModal').style.display = 'block';
+            document.getElementById('modalImage').src = imageSrc;
+        }
+        
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+        
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
